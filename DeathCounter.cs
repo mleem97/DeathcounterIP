@@ -718,7 +718,7 @@ namespace Oxide.Plugins
         [ConsoleCommand("deathcounter.reset")]
         void ResetDeathsConsole(ConsoleSystem.Arg arg)
         {
-            if (arg.Player() != null && !IsAdmin(arg.Player())) 
+            if (arg.Player != null && !IsAdmin(arg.Player)) 
             {
                 arg.ReplyWith("Access denied. Admin permission required.");
                 return;
@@ -765,7 +765,7 @@ namespace Oxide.Plugins
         [ConsoleCommand("deathcounter.reload")]
         void ReloadPluginConsole(ConsoleSystem.Arg arg)
         {
-            if (arg.Player() != null && !IsAdmin(arg.Player())) 
+            if (arg.Player != null && !IsAdmin(arg.Player)) 
             {
                 arg.ReplyWith("Access denied. Admin permission required.");
                 return;
