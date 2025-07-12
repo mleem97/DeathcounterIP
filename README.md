@@ -1,124 +1,189 @@
-# DeathCounter Plugin für Rust Oxide
+# DeathCounter Plugin for Rust Oxide
 
-Ein Rust Oxide Plugin, das die Anzahl der Todesfälle von Spielern im InfoPanel anzeigt.
+A Rust Oxide plugin that displays player death counts in the InfoPanel GUI.
 
 ## Features
 
-- **Echtzeit Death Counter**: Zeigt die Anzahl der Todesfälle jedes Spielers in einem InfoPanel an
-- **Automatische Updates**: Das Panel wird automatisch aktualisiert, wenn ein Spieler stirbt
-- **Persistente Daten**: Todesfälle werden gespeichert und überleben Server-Neustarts
-- **Farbkodierung**: Die Anzahl der Todesfälle wird farblich dargestellt (grün für wenige, rot für viele)
-- **Chat-Befehle**: Verschiedene Befehle zur Verwaltung und Anzeige von Statistiken
-- **Admin-Funktionen**: Admins können Todesfälle zurücksetzen
-- **Vollständig konfigurierbar**: Position, Farben, Größe und Update-Intervall können angepasst werden
+- **Real-time Death Counter**: Shows each player's death count in an InfoPanel display
+- **Automatic Updates**: Panel automatically updates when a player dies
+- **Persistent Data**: Death counts are saved and survive server restarts
+- **Color Coding**: Death count is color-coded (green for few deaths, red for many)
+- **Chat Commands**: Various commands for managing and displaying statistics
+- **Admin Functions**: Admins can reset death counts
+- **Fully Configurable**: Position, colors, size, and update interval can be customized
+- **Permissions System**: Full Oxide permissions integration for access control
+- **Multilingual Support**: English and German language support
+- **Error Handling**: Robust error handling and debug mode
 
-## Abhängigkeiten
+## Dependencies
 
-- **InfoPanel Plugin**: Dieses Plugin benötigt das InfoPanel Plugin von Ghosst
+- **InfoPanel Plugin**: This plugin requires the InfoPanel plugin by Ghosst
 - Rust Oxide Framework
 
 ## Installation
 
-1. Stelle sicher, dass das InfoPanel Plugin installiert und funktionsfähig ist
-2. Lade `DeathCounter.cs` in den `oxide/plugins/` Ordner deines Rust-Servers hoch
-3. Das Plugin wird automatisch geladen und erstellt eine Konfigurationsdatei
+1. Ensure the InfoPanel plugin is installed and functional
+2. Upload `DeathCounter.cs` to the `oxide/plugins/` folder of your Rust server
+3. The plugin will automatically load and create a configuration file
 
-## Konfiguration
+## Permissions
 
-Die Konfiguration findest du unter `oxide/config/DeathCounter.json`:
+The plugin uses Oxide's permission system for access control:
+
+- `deathcounter.use` - Basic plugin usage (view panel, chat commands)
+- `deathcounter.admin` - Administrative commands (reset, reload)
+- `deathcounter.viewall` - View all player deaths (future feature)
+
+**Grant permissions:**
+```
+oxide.grant group default deathcounter.use
+oxide.grant group admin deathcounter.admin
+```
+
+## Configuration
+
+Configuration can be found at `oxide/config/DeathCounter.json`:
 
 ```json
 {
-  "Update Interval (seconds)": 10,
-  "Panel Position": "TopPanel",
-  "Show Own Deaths Only": true,
-  "Panel Background Color": "0.1 0.1 0.1 0.4",
-  "Text Color": "1 0.2 0.2 1",
-  "Font Size": 12,
-  "Panel Width": 0.12,
-  "Panel Height": 0.95
+  "Update Interval in seconds (Default: 10)": 10,
+  "Panel Position (TopPanel/BottomPanel/LeftPanel/RightPanel)": "TopPanel",
+  "Show Own Deaths Only (true) or All Players (false)": true,
+  "Panel Background Color (RGBA: Red Green Blue Alpha)": "0.1 0.1 0.1 0.4",
+  "Default Text Color (RGBA: Red Green Blue Alpha)": "1 0.2 0.2 1",
+  "Font Size (Default: 12)": 12,
+  "Panel Width (0.0 - 1.0, Default: 0.12)": 0.12,
+  "Panel Height (0.0 - 1.0, Default: 0.95)": 0.95,
+  "Auto-show Panel on Player Connect": true,
+  "Death Icon URL (leave empty for default skull)": "https://i.imgur.com/QvMYvdf.png",
+  "Enable Debug Mode": false
 }
 ```
 
-### Konfigurationsoptionen
+### Configuration Options
 
-- **Update Interval**: Wie oft das Panel aktualisiert wird (in Sekunden)
-- **Panel Position**: Position des Panels ("TopPanel", "BottomPanel", etc.)
-- **Show Own Deaths Only**: Ob nur eigene Todesfälle oder die aller Spieler angezeigt werden
-- **Panel Background Color**: Hintergrundfarbe des Panels (RGBA Format)
-- **Text Color**: Standardtextfarbe (RGBA Format)
-- **Font Size**: Schriftgröße
-- **Panel Width/Height**: Breite und Höhe des Panels (0-1)
+- **Update Interval**: How often the panel updates (in seconds)
+- **Panel Position**: Panel position ("TopPanel", "BottomPanel", etc.)
+- **Show Own Deaths Only**: Whether to show only own deaths or all players
+- **Panel Background Color**: Panel background color (RGBA format)
+- **Default Text Color**: Default text color (RGBA format)
+- **Font Size**: Font size for the text
+- **Panel Width/Height**: Panel dimensions (0-1)
+- **Auto-show Panel**: Automatically show panel when players connect
+- **Death Icon URL**: Custom death icon URL
+- **Debug Mode**: Enable detailed logging for troubleshooting
 
-## Chat-Befehle
+## Chat Commands
 
-### Für alle Spieler:
-- `/deaths` - Zeigt deine eigenen Todesfälle an
-- `/deathstop` - Zeigt die Top 5 Spieler mit den meisten Todesfällen
-- `/deathpanel show` - Zeigt das Death Counter Panel an
-- `/deathpanel hide` - Versteckt das Death Counter Panel
+### For all players:
+- `/deaths` - Shows your own death count
+- `/deathstop` - Shows top 5 players with most deaths
+- `/deathpanel show` - Shows the Death Counter panel
+- `/deathpanel hide` - Hides the Death Counter panel
 
-### Für Admins:
-- `/deathpanel reset [spielername]` - Setzt Todesfälle für einen Spieler zurück (oder eigene, wenn kein Name angegeben)
+### For admins:
+- `/deathpanel reset [playername]` - Resets death count for a player (or yourself if no name given)
 
-## Konsolen-Befehle
+## Console Commands
 
-- `deathcounter.reset [spielername]` - Setzt Todesfälle zurück (ohne Namen = alle Spieler)
-- `deathcounter.reload` - Lädt die Konfiguration neu
+- `deathcounter.reset [playername]` - Reset death counts (no name = all players)
+- `deathcounter.reload` - Reload configuration
+- `deathcounter.status` - Show plugin status and statistics
 
-## Farbkodierung
+## Color Coding
 
-Das Plugin verwendet eine automatische Farbkodierung basierend auf der Anzahl der Todesfälle:
+The plugin uses automatic color coding based on death count:
 
-- **0 Todesfälle**: Grün
-- **1-5 Todesfälle**: Gelb
-- **6-10 Todesfälle**: Orange
-- **11-20 Todesfälle**: Rot
-- **20+ Todesfälle**: Dunkelrot
+- **0 Deaths**: Green
+- **1-3 Deaths**: Yellow
+- **4-7 Deaths**: Orange
+- **8-15 Deaths**: Red-Orange
+- **16-25 Deaths**: Red
+- **25+ Deaths**: Dark Red
 
 ## InfoPanel Integration
 
-Das Plugin nutzt die InfoPanel API für die GUI-Darstellung:
+The plugin uses the InfoPanel API for GUI display:
 
-- Automatische Registrierung beim InfoPanel
-- Unterstützung für alle InfoPanel-Features (Docking, Anker, etc.)
-- Responsive Updates bei Spieler-Events
-- Individualisierung pro Spieler möglich
+- Automatic registration with InfoPanel
+- Support for all InfoPanel features (docking, anchors, etc.)
+- Responsive updates on player events
+- Individual customization per player possible
 
-## Datenverarbeitung
+## Data Processing
 
-- Todesfälle werden in `oxide/data/DeathCounter_Deaths.json` gespeichert
-- Automatisches Speichern bei Server-Saves und Plugin-Entladung
-- Backup-System verhindert Datenverlust
+- Death counts are stored in `oxide/data/DeathCounter_Deaths.json`
+- Automatic saving on server saves and plugin unload
+- Backup system prevents data loss
 
 ## Events
 
-Das Plugin reagiert auf folgende Rust-Events:
-- `OnPlayerDeath`: Erhöht den Death Counter
-- `OnPlayerConnected`: Zeigt das Panel neuen Spielern
-- `OnPlayerDisconnected`: Versteckt das Panel
-- `OnServerSave`: Speichert die Daten
+The plugin responds to the following Rust events:
+- `OnPlayerDeath`: Increments the death counter
+- `OnPlayerConnected`: Shows panel to new players
+- `OnPlayerDisconnected`: Hides the panel
+- `OnServerSave`: Saves the data
 
 ## Troubleshooting
 
-1. **Panel wird nicht angezeigt**: 
-   - Stelle sicher, dass InfoPanel installiert und geladen ist
-   - Überprüfe die Plugin-Logs auf Fehler
+1. **Panel not showing**: 
+   - Make sure InfoPanel is installed and loaded
+   - Check plugin logs for errors
+   - Verify player has `deathcounter.use` permission
 
-2. **Daten gehen verloren**:
-   - Überprüfe die Schreibrechte im `oxide/data/` Ordner
+2. **Data loss**:
+   - Check write permissions in `oxide/data/` folder
+   - Enable debug mode for detailed logging
 
-3. **Performance-Probleme**:
-   - Erhöhe das Update-Intervall in der Konfiguration
+3. **Performance issues**:
+   - Increase update interval in configuration
+   - Check server performance during peak times
+
+4. **Permission issues**:
+   - Verify permissions are granted correctly
+   - Use `oxide.show perms <player>` to check player permissions
+
+## Localization
+
+The plugin supports multiple languages:
+- **English** (en) - Default
+- **German** (de) - Included
+
+Language files are stored in `oxide/lang/[language]/DeathCounter.json`
+
+To add custom translations:
+1. Create a new language file in the appropriate folder
+2. Copy the structure from an existing language file
+3. Translate the messages
+
+## API for Other Plugins
+
+The plugin stores death data that other plugins can access:
+
+```csharp
+// Get death count for a player
+var deathCount = DeathCounter?.Call("GetPlayerDeaths", player.userID);
+
+// Reset death count for a player
+DeathCounter?.Call("ResetPlayerDeaths", player.userID);
+```
 
 ## Version History
 
-- **1.0.0**: Erste Version mit grundlegenden Features
+- **1.1.0**: Added permissions system, localization, improved error handling
+- **1.0.0**: Initial release with basic features
 
 ## Support
 
-Bei Problemen oder Feature-Requests erstelle ein Issue auf GitHub oder kontaktiere den Plugin-Entwickler.
+For issues or feature requests, please create an issue on GitHub or contact the plugin developer.
 
-## Lizenz
+## License
 
-Dieses Plugin steht unter einer Open-Source-Lizenz und kann frei modifiziert und verteilt werden.
+This plugin is open source and can be freely modified and distributed.
+
+## Credits
+
+- **mleem97** - Plugin Developer
+- **Ghosst** - InfoPanel Plugin (dependency)
+- **Oxide/uMod Team** - Framework
+- **Rust Community** - Feedback and testing
