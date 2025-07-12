@@ -1,0 +1,13 @@
+{
+  "Update Interval in seconds (Default: 10)": 10,
+  "Panel Position (TopPanel/BottomPanel/LeftPanel/RightPanel)": "TopPanel",
+  "Show Own Deaths Only (true) or All Players (false)": true,
+  "Panel Background Color (RGBA: Red Green Blue Alpha)": "0.1 0.1 0.1 0.4",
+  "Default Text Color (RGBA: Red Green Blue Alpha)": "1 0.2 0.2 1",
+  "Font Size (Default: 12)": 12,
+  "Panel Width (0.0 - 1.0, Default: 0.12)": 0.12,
+  "Panel Height (0.0 - 1.0, Default: 0.95)": 0.95,
+  "Auto-show Panel on Player Connect": true,
+  "Death Icon URL (leave empty for default skull)": "https://i.imgur.com/QvMYvdf.png",
+  "Enable Debug Mode": false
+}
