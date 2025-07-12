@@ -204,7 +204,141 @@ namespace Oxide.Plugins
             permission.RegisterPermission(PERMISSION_USE, this);
             permission.RegisterPermission(PERMISSION_VIEW_ALL, this);
 
+            // Ensure all required files exist and are up to date
+            EnsureRequiredFiles();
+            
             LoadData();
+        }
+
+        private void EnsureRequiredFiles()
+        {
+            try
+            {
+                // Check and create/update configuration file
+                EnsureConfigurationFile();
+                
+                // Check and create/update language files
+                EnsureLanguageFiles();
+                
+                // Check and create data file if it doesn't exist
+                EnsureDataFile();
+                
+                LogInfo("All required files checked and ensured");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error ensuring required files: {ex.Message}");
+            }
+        }
+
+        private void EnsureConfigurationFile()
+        {
+            var configPath = $"{Interface.Oxide.ConfigDirectory}{System.IO.Path.DirectorySeparatorChar}DeathCounter.json";
+            bool needsUpdate = false;
+            
+            if (!System.IO.File.Exists(configPath))
+            {
+                LogInfo("Configuration file not found, creating new one...");
+                Config.WriteObject(new Configuration(), true);
+                needsUpdate = true;
+            }
+            else
+            {
+                // Check if config file is outdated (version check)
+                try
+                {
+                    var existingConfig = Config.ReadObject<Configuration>();
+                    var newConfig = new Configuration();
+                    
+                    // Check if new properties are missing (simple version check)
+                    var existingJson = JsonConvert.SerializeObject(existingConfig);
+                    var newJson = JsonConvert.SerializeObject(newConfig);
+                    
+                    if (existingJson.Length < newJson.Length * 0.8) // If existing config is significantly smaller
+                    {
+                        LogWarning("Configuration file appears outdated, backing up and creating new one...");
+                        System.IO.File.Copy(configPath, $"{configPath}.backup.{DateTime.Now:yyyyMMdd_HHmmss}");
+                        Config.WriteObject(newConfig, true);
+                        needsUpdate = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogWarning($"Could not validate config file: {ex.Message}. Creating new one...");
+                    System.IO.File.Copy(configPath, $"{configPath}.backup.{DateTime.Now:yyyyMMdd_HHmmss}");
+                    Config.WriteObject(new Configuration(), true);
+                    needsUpdate = true;
+                }
+            }
+            
+            if (needsUpdate)
+            {
+                LogInfo("Configuration file created/updated successfully");
+            }
+        }
+
+        private void EnsureLanguageFiles()
+        {
+            try
+            {
+                var langDir = $"{Interface.Oxide.DataDirectory}{System.IO.Path.DirectorySeparatorChar}lang";
+                
+                // Ensure language directories exist
+                var enDir = $"{langDir}{System.IO.Path.DirectorySeparatorChar}en";
+                var deDir = $"{langDir}{System.IO.Path.DirectorySeparatorChar}de";
+                
+                if (!System.IO.Directory.Exists(enDir))
+                    System.IO.Directory.CreateDirectory(enDir);
+                if (!System.IO.Directory.Exists(deDir))
+                    System.IO.Directory.CreateDirectory(deDir);
+                
+                // Force recreation of language files to ensure they're up to date
+                LoadDefaultMessages();
+                
+                LogInfo("Language files ensured and updated");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error ensuring language files: {ex.Message}");
+            }
+        }
+
+        private void EnsureDataFile()
+        {
+            try
+            {
+                var dataPath = $"{Interface.Oxide.DataDirectory}{System.IO.Path.DirectorySeparatorChar}DeathCounter_Deaths.json";
+                
+                if (!System.IO.File.Exists(dataPath))
+                {
+                    LogInfo("Data file not found, creating new one...");
+                    Interface.Oxide.DataFileSystem.WriteObject("DeathCounter_Deaths", new Dictionary<ulong, int>());
+                }
+                else
+                {
+                    // Validate data file integrity
+                    try
+                    {
+                        var testData = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<ulong, int>>("DeathCounter_Deaths");
+                        if (testData == null)
+                        {
+                            LogWarning("Data file corrupted, creating backup and new file...");
+                            System.IO.File.Copy(dataPath, $"{dataPath}.backup.{DateTime.Now:yyyyMMdd_HHmmss}");
+                            Interface.Oxide.DataFileSystem.WriteObject("DeathCounter_Deaths", new Dictionary<ulong, int>());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Data file validation failed: {ex.Message}. Creating backup and new file...");
+                        System.IO.File.Copy(dataPath, $"{dataPath}.backup.{DateTime.Now:yyyyMMdd_HHmmss}");
+                        Interface.Oxide.DataFileSystem.WriteObject("DeathCounter_Deaths", new Dictionary<ulong, int>());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error ensuring data file: {ex.Message}");
+            }
         }
 
         void Loaded()
@@ -230,22 +364,135 @@ namespace Oxide.Plugins
 
         void Unload()
         {
-            SaveData();
-            updateTimer?.Destroy();
-            
-            // Hide panels for all players
-            if (InfoPanel != null)
+            try
             {
-                foreach (var player in BasePlayer.activePlayerList)
+                LogInfo("Unloading DeathCounter plugin...");
+                
+                // Save data before unloading
+                SaveData();
+                
+                // Destroy timer
+                if (updateTimer != null)
                 {
-                    InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                    updateTimer.Destroy();
+                    updateTimer = null;
                 }
+                
+                // Hide panels for all players
+                if (InfoPanel != null)
+                {
+                    try
+                    {
+                        foreach (var player in BasePlayer.activePlayerList)
+                        {
+                            InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                        }
+                        LogInfo("Hidden all player panels");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Error hiding panels during unload: {ex.Message}");
+                    }
+                }
+                
+                LogInfo("DeathCounter plugin unloaded successfully");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error during plugin unload: {ex.Message}");
             }
         }
 
         void OnServerSave()
         {
             SaveData();
+        }
+
+        void OnPluginLoaded(Plugin plugin)
+        {
+            if (plugin.Name == "InfoPanel")
+            {
+                LogInfo("InfoPanel plugin loaded, initializing integration...");
+                InfoPanel = plugin;
+                
+                // Small delay to ensure InfoPanel is fully initialized
+                timer.Once(1f, () => {
+                    RegisterInfoPanel();
+                    LogInfo("InfoPanel integration reestablished");
+                });
+            }
+        }
+
+        void OnPluginUnloaded(Plugin plugin)
+        {
+            if (plugin.Name == "InfoPanel")
+            {
+                LogWarning("InfoPanel plugin unloaded - GUI features disabled");
+                InfoPanel = null;
+            }
+        }
+
+        void OnServerInitialized()
+        {
+            LogInfo("Server initialized, checking InfoPanel dependency...");
+            
+            // Check if InfoPanel is available
+            CheckInfoPanelDependency();
+            
+            // Register InfoPanel if available
+            if (InfoPanel != null)
+            {
+                RegisterInfoPanel();
+                LogInfo("InfoPanel integration ready");
+            }
+            else
+            {
+                LogWarning("InfoPanel plugin not found - GUI features will be unavailable");
+                LogWarning("Please install InfoPanel plugin by Ghosst for full functionality");
+            }
+            
+            // Start update timer regardless of InfoPanel availability
+            if (config.UpdateInterval > 0)
+            {
+                updateTimer = timer.Every(config.UpdateInterval, UpdateAllPanels);
+                LogInfo($"Started update timer with {config.UpdateInterval}s interval");
+            }
+        }
+
+        private void CheckInfoPanelDependency()
+        {
+            try
+            {
+                // Try to get InfoPanel plugin reference
+                var infoPanelPlugin = plugins.Find("InfoPanel");
+                
+                if (infoPanelPlugin == null)
+                {
+                    LogWarning("InfoPanel plugin not found in plugin list");
+                    return;
+                }
+                
+                if (!infoPanelPlugin.IsLoaded)
+                {
+                    LogWarning("InfoPanel plugin found but not loaded");
+                    return;
+                }
+                
+                // InfoPanel is available
+                InfoPanel = infoPanelPlugin;
+                LogInfo("InfoPanel plugin found and loaded successfully");
+                
+                // Test if we can call InfoPanel methods
+                var result = InfoPanel.Call("API_VERSION");
+                if (result != null)
+                {
+                    LogInfo($"InfoPanel API version: {result}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error checking InfoPanel dependency: {ex.Message}");
+            }
         }
 
         void OnPlayerDeath(BasePlayer player, HitInfo info)
@@ -551,13 +798,24 @@ namespace Oxide.Plugins
         {
             try
             {
-                playerDeaths = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<ulong, int>>("DeathCounter_Deaths") ?? new Dictionary<ulong, int>();
-                LogInfo($"Loaded death data for {playerDeaths.Count} players");
+                playerDeaths = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<ulong, int>>("DeathCounter_Deaths");
+                if (playerDeaths == null)
+                {
+                    LogWarning("Death data was null, initializing empty dictionary");
+                    playerDeaths = new Dictionary<ulong, int>();
+                    SaveData(); // Save empty data immediately
+                }
+                else
+                {
+                    LogInfo($"Loaded death data for {playerDeaths.Count} players");
+                }
             }
             catch (Exception ex)
             {
                 LogError($"Error loading death data: {ex.Message}");
+                LogWarning("Initializing with empty death data");
                 playerDeaths = new Dictionary<ulong, int>();
+                SaveData(); // Save empty data immediately
             }
         }
 
