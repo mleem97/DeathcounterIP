@@ -794,7 +794,7 @@ namespace Oxide.Plugins
         [ConsoleCommand("deathcounter.status")]
         void StatusConsole(ConsoleSystem.Arg arg)
         {
-            if (arg.Player() != null && !IsAdmin(arg.Player())) 
+            if (arg.Player != null && !IsAdmin(arg.Player)) 
             {
                 arg.ReplyWith("Access denied. Admin permission required.");
                 return;

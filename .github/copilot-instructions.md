@@ -92,3 +92,49 @@ Interface.Oxide.DataFileSystem.ReadObject<Dictionary<ulong, int>>("DeathCounter_
 - **Debug mode** essential for troubleshooting InfoPanel integration
 - **Permission testing** with different player roles
 - **Data persistence testing** across server restarts
+
+## Common Compilation Issues
+- **ConsoleSystem.Arg**: Use `arg.Player` (property) not `arg.Player()` (method)
+- **BasePlayer references**: Always null-check before accessing player properties
+- **InfoPanel dependency**: Plugin will compile but fail at runtime if InfoPanel missing
+- **Oxide API changes**: Monitor `oxide/logs/` for deprecation warnings
+- **Permission system**: Use `permission.UserHasPermission()` not deprecated methods
+
+## Debugging Workflow
+1. **Check compilation**: Monitor Oxide compiler logs for syntax errors
+2. **Runtime errors**: Enable debug mode in config, check `oxide/logs/`
+3. **InfoPanel issues**: Verify InfoPanel loaded with `oxide.plugins` command
+4. **Permission problems**: Test with `oxide.show perms <player>` command
+5. **Data issues**: Check `oxide/data/DeathCounter_Deaths.json` file permissions
+
+## Essential Oxide/uMod Resources
+
+### Core Documentation
+- **Main Documentation**: https://docs.oxidemod.com/
+- **Developer Guides**: https://docs.oxidemod.com/guides/
+- **API Reference**: https://docs.oxidemod.com/core/
+- **Hooks Reference**: https://docs.oxidemod.com/hooks/
+- **Glossary**: https://docs.oxidemod.com/glossary
+
+### Development Resources
+- **Getting Started**: https://docs.oxidemod.com/guides/developers/getting-started
+- **Development Environment**: https://docs.oxidemod.com/guides/developers/development-environment
+- **First Plugin Tutorial**: https://docs.oxidemod.com/guides/developers/my-first-plugin
+- **Best Practices**: https://docs.oxidemod.com/guides/developers/best-practices
+- **Plugin Guidelines**: https://docs.oxidemod.com/guides/developers/plugin-guidelines
+
+### Critical APIs for This Project
+- **Permissions System**: https://docs.oxidemod.com/guides/developers/permissions
+- **Data Storage**: https://docs.oxidemod.com/guides/developers/data-storage
+- **Localization**: https://docs.oxidemod.com/guides/owners/localization
+- **Timers**: https://docs.oxidemod.com/guides/developers/timers
+- **Plugin Lifecycle**: https://docs.oxidemod.com/guides/developers/plugin-lifecycle
+
+### Community & Support
+- **Discord**: https://discord.gg/oxide
+- **GitHub**: https://github.com/oxidemod
+- **Official Site**: https://oxidemod.com/
+- **Twitter**: https://twitter.com/oxidemod
+- **Contributing**: https://docs.oxidemod.com/guides/owners/contributing
+- **Issue Reporting**: https://docs.oxidemod.com/guides/owners/reporting-issues
+- **uMod Contribution Guide**: https://umod.org/guides/foreword/contribution-guide
