@@ -382,30 +382,47 @@ namespace Oxide.Plugins
                 LogInfo("Unloading DeathCounter plugin...");
                 
                 // Save data before unloading
-                SaveData();
+                try
+                {
+                    SaveData();
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error saving data during unload: {ex.Message}");
+                }
                 
                 // Destroy timer
-                if (updateTimer != null)
+                try
                 {
-                    updateTimer.Destroy();
-                    updateTimer = null;
+                    if (updateTimer != null)
+                    {
+                        updateTimer.Destroy();
+                        updateTimer = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error destroying timer during unload: {ex.Message}");
                 }
                 
                 // Hide panels for all players
-                if (InfoPanel != null)
+                try
                 {
-                    try
+                    if (InfoPanel != null && BasePlayer.activePlayerList != null)
                     {
                         foreach (var player in BasePlayer.activePlayerList)
                         {
-                            InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                            if (player != null && !string.IsNullOrEmpty(player.UserIDString))
+                            {
+                                InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                            }
                         }
                         LogInfo("Hidden all player panels");
                     }
-                    catch (Exception ex)
-                    {
-                        LogError($"Error hiding panels during unload: {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error hiding panels during unload: {ex.Message}");
                 }
                 
                 LogInfo("DeathCounter plugin unloaded successfully");
@@ -769,18 +786,42 @@ namespace Oxide.Plugins
 
         private void LogInfo(string message)
         {
-            if (config?.DebugMode == true)
+            try
+            {
+                if (config?.DebugMode == true)
+                    Puts($"[INFO] {message}");
+            }
+            catch
+            {
+                // Fallback if config is null
                 Puts($"[INFO] {message}");
+            }
         }
 
         private void LogWarning(string message)
         {
-            PrintWarning($"[WARNING] {message}");
+            try
+            {
+                PrintWarning($"[WARNING] {message}");
+            }
+            catch
+            {
+                // Fallback
+                Puts($"[WARNING] {message}");
+            }
         }
 
         private void LogError(string message)
         {
-            PrintError($"[ERROR] {message}");
+            try
+            {
+                PrintError($"[ERROR] {message}");
+            }
+            catch
+            {
+                // Fallback
+                Puts($"[ERROR] {message}");
+            }
         }
 
         #endregion
