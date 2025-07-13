@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("DeathCounter", "mleem97", "1.2.0")]
+    [Info("DeathCounter", "mleem97", "1.3.0")]
     [Description("Displays player death counts in the InfoPanel GUI")]
     public class DeathCounter : RustPlugin
     {
@@ -353,14 +353,8 @@ namespace Oxide.Plugins
 
         void Loaded()
         {
-            if (InfoPanel != null)
-            {
-                InfoPanelInit();
-            }
-            else
-            {
-                LogWarning("InfoPanel plugin not found. DeathCounter requires InfoPanel to function.");
-            }
+            // Don't initialize InfoPanel immediately - wait for OnServerInitialized
+            LogInfo("DeathCounter plugin loaded, waiting for server initialization...");
         }
 
         void OnPluginLoaded(Plugin plugin)
@@ -370,11 +364,32 @@ namespace Oxide.Plugins
                 LogInfo("InfoPanel detected, initializing DeathCounter integration...");
                 InfoPanel = plugin;
                 
-                // Small delay to ensure InfoPanel is fully initialized
-                timer.Once(1f, () => {
-                    InfoPanelInit();
-                    LogInfo("InfoPanel integration reestablished");
-                });
+                // Only initialize if server is already initialized
+                if (IsServerInitialized())
+                {
+                    // Small delay to ensure InfoPanel is fully initialized
+                    timer.Once(1f, () => {
+                        InfoPanelInit();
+                        LogInfo("InfoPanel integration reestablished");
+                    });
+                }
+                else
+                {
+                    LogInfo("Server not yet initialized, will connect InfoPanel later");
+                }
+            }
+        }
+        
+        private bool IsServerInitialized()
+        {
+            try
+            {
+                // Check if server is running and initialized
+                return ServerMgr.Instance != null && BaseNetworkable.serverEntities != null;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -408,35 +423,35 @@ namespace Oxide.Plugins
                     LogError($"Error destroying timer during unload: {ex.Message}");
                 }
                 
-                // Hide panels for all players
+                // Minimal InfoPanel cleanup - let InfoPanel handle most of the cleanup automatically
                 try
                 {
-                    if (InfoPanel != null && isPanelRegistered && BasePlayer.activePlayerList != null)
+                    LogInfo($"InfoPanel cleanup - panel registered: {isPanelRegistered}, InfoPanel available: {InfoPanel != null}");
+                    
+                    // Signal to InfoPanel that we're removing all our panels
+                    if (InfoPanel != null && isPanelRegistered)
                     {
-                        foreach (var player in BasePlayer.activePlayerList)
+                        try
                         {
-                            if (player != null && !string.IsNullOrEmpty(player.UserIDString))
-                            {
-                                try
-                                {
-                                    InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
-                                }
-                                catch (Exception playerEx)
-                                {
-                                    // Ignore individual player errors during unload
-                                    LogInfo($"Could not hide panel for player {player.displayName}: {playerEx.Message}");
-                                }
-                            }
+                            // Send empty panel list to signal cleanup
+                            InfoPanel.Call("SendPanelInfo", "DeathCounter", new List<string>());
+                            LogInfo("Sent empty panel list to InfoPanel for cleanup");
                         }
-                        LogInfo("Hidden all player panels");
+                        catch (Exception cleanupEx)
+                        {
+                            LogInfo($"Could not send cleanup signal to InfoPanel: {cleanupEx.Message}");
+                        }
                     }
                     
-                    // Reset panel registration flag
+                    // Reset our flag
                     isPanelRegistered = false;
+                    
+                    LogInfo("InfoPanel cleanup completed");
                 }
                 catch (Exception ex)
                 {
-                    LogError($"Error hiding panels during unload: {ex.Message}");
+                    LogError($"Error during InfoPanel cleanup: {ex.Message}");
+                    isPanelRegistered = false; // Reset flag even if cleanup failed
                 }
                 
                 LogInfo("DeathCounter plugin unloaded successfully");
@@ -458,6 +473,7 @@ namespace Oxide.Plugins
             {
                 LogWarning("InfoPanel plugin unloaded - GUI features disabled");
                 InfoPanel = null;
+                isPanelRegistered = false; // Reset panel registration when InfoPanel unloads
             }
         }
 
@@ -593,17 +609,11 @@ namespace Oxide.Plugins
             
             try
             {
-                if (InfoPanel != null && isPanelRegistered)
+                // Let InfoPanel handle its own cleanup during disconnection
+                // Removed HidePanel call to avoid KeyNotFoundException errors
+                if (config?.DebugMode == true)
                 {
-                    try
-                    {
-                        InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
-                    }
-                    catch (Exception hideEx)
-                    {
-                        // Ignore panel hide errors during disconnect
-                        LogInfo($"Could not hide panel for disconnecting player {player.displayName}: {hideEx.Message}");
-                    }
+                    LogInfo($"Player {player.displayName} disconnected");
                 }
             }
             catch (Exception ex)
@@ -620,20 +630,39 @@ namespace Oxide.Plugins
         {
             try
             {
+                // Check if already initialized to prevent duplicate registration
+                if (isPanelRegistered)
+                {
+                    LogInfo("InfoPanel already initialized, skipping re-initialization");
+                    return;
+                }
+                
+                LogInfo("Initializing InfoPanel integration...");
+                
                 InfoPanel.Call("SendPanelInfo", "DeathCounter", panels);
                 AddDeathCounterPanel();
                 
-                updateTimer?.Destroy();
-                if (config?.UpdateInterval > 0)
+                // Only restart timer if panel registration was successful
+                if (isPanelRegistered)
                 {
-                    updateTimer = timer.Repeat(config.UpdateInterval, 0, () => UpdateAllPanels());
+                    updateTimer?.Destroy();
+                    if (config?.UpdateInterval > 0)
+                    {
+                        updateTimer = timer.Repeat(config.UpdateInterval, 0, () => UpdateAllPanels());
+                        LogInfo($"Update timer started with {config.UpdateInterval}s interval");
+                    }
+                    
+                    LogInfo("DeathCounter successfully integrated with InfoPanel");
                 }
-
-                LogInfo("DeathCounter successfully integrated with InfoPanel");
+                else
+                {
+                    LogWarning("InfoPanel integration failed - panel registration unsuccessful");
+                }
             }
             catch (Exception ex)
             {
                 LogError($"Error initializing InfoPanel integration: {ex.Message}");
+                isPanelRegistered = false;
             }
         }
 
@@ -641,25 +670,42 @@ namespace Oxide.Plugins
         {
             try
             {
-                bool success = (bool)InfoPanel.Call("PanelRegister", "DeathCounter", "DeathCounterPanel", GetPanelConfig());
+                // First check if panel is already registered to avoid duplicates
+                if (isPanelRegistered)
+                {
+                    LogInfo("DeathCounter panel already registered, skipping registration");
+                    return;
+                }
+                
+                LogInfo("Attempting to register DeathCounter panel with InfoPanel...");
+                var panelConfig = GetPanelConfig();
+                LogInfo($"Panel config generated: {panelConfig.Length} characters");
+                
+                var result = InfoPanel.Call("PanelRegister", "DeathCounter", "DeathCounterPanel", panelConfig);
+                LogInfo($"PanelRegister result: {result} (type: {result?.GetType()})");
+                
+                bool success = result != null && (bool)result;
                 
                 if (success)
                 {
                     isPanelRegistered = true;
                     LogInfo("DeathCounter panel registered successfully");
                     
-                    // Show panel to connected players with permission
-                    foreach (var player in BasePlayer.activePlayerList)
-                    {
-                        if (HasPermission(player, PERMISSION_USE))
+                    // Small delay before showing panels to ensure registration is complete
+                    timer.Once(0.5f, () => {
+                        // Show panel to connected players with permission
+                        foreach (var player in BasePlayer.activePlayerList)
                         {
-                            ShowPanelToPlayer(player);
+                            if (HasPermission(player, PERMISSION_USE))
+                            {
+                                ShowPanelToPlayer(player);
+                            }
                         }
-                    }
+                    });
                 }
                 else
                 {
-                    LogError("Failed to register DeathCounter panel with InfoPanel");
+                    LogError($"Failed to register DeathCounter panel with InfoPanel (result: {result})");
                     isPanelRegistered = false;
                 }
             }
@@ -723,7 +769,7 @@ namespace Oxide.Plugins
 
         private void UpdatePlayerPanel(BasePlayer player)
         {
-            if (InfoPanel == null || player == null) return;
+            if (InfoPanel == null || player == null || !isPanelRegistered) return;
 
             try
             {
@@ -733,6 +779,7 @@ namespace Oxide.Plugins
                 string content = Lang("DeathCount", player.UserIDString, deaths);
                 string color = GetDeathColor(deaths);
 
+                // Use correct InfoPanel naming convention: PanelName + "Text" for text elements
                 InfoPanel.Call("SetPanelAttribute", "DeathCounter", "DeathCounterPanelText", "Content", content, player.UserIDString);
                 InfoPanel.Call("SetPanelAttribute", "DeathCounter", "DeathCounterPanelText", "FontColor", color, player.UserIDString);
                 InfoPanel.Call("RefreshPanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
@@ -748,7 +795,7 @@ namespace Oxide.Plugins
 
         private void UpdateAllPanels()
         {
-            if (InfoPanel == null) return;
+            if (InfoPanel == null || !isPanelRegistered) return;
 
             try
             {
@@ -768,7 +815,7 @@ namespace Oxide.Plugins
 
         private void ShowPanelToPlayer(BasePlayer player)
         {
-            if (InfoPanel == null || player == null || !HasPermission(player, PERMISSION_USE)) return;
+            if (InfoPanel == null || player == null || !HasPermission(player, PERMISSION_USE) || !isPanelRegistered) return;
             
             try
             {
@@ -1138,7 +1185,7 @@ namespace Oxide.Plugins
                 var activePlayers = BasePlayer.activePlayerList.Count;
 
                 arg.ReplyWith($"=== DeathCounter Status ===");
-                arg.ReplyWith($"Plugin Version: 1.2.0");
+                arg.ReplyWith($"Plugin Version: 1.3.0");
                 arg.ReplyWith($"InfoPanel Status: {infoPanelStatus}");
                 arg.ReplyWith($"Total Players Tracked: {totalPlayers}");
                 arg.ReplyWith($"Total Deaths Recorded: {totalDeaths}");
