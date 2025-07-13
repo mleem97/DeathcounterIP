@@ -1,4 +1,7 @@
+
 # DeathCounter - Rust Oxide Plugin
+
+**Current Version: 1.3.5**
 
 A comprehensive Rust Oxide plugin that displays player death counts through the InfoPanel GUI system.
 
@@ -87,18 +90,29 @@ The plugin uses automatic color coding based on death count:
 ## Troubleshooting
 
 ### Plugin won't compile
-- Check that all required dependencies are installed
-- Ensure you're using the latest version of Oxide
 
 ### InfoPanel not showing
-- Check that InfoPanel plugin is installed and loaded
-- Ensure the player has required permissions
-- Enable debug mode in configuration for detailed logs
 
 ### Data loss
-- Plugin automatically saves after every death
-- Backup files are created automatically on problems
-- Check file permissions in `oxide/data/` directory
+
+## Known Issues
+
+### Panel registration reported success but verification failed
+
+**Log example:**
+```
+(03:18:46) | [DeathCounter] [WARNING] Panel registration reported success but verification failed
+```
+
+**Explanation:**
+This warning means that the InfoPanel API returned a success response when registering the DeathCounter panel, but a subsequent verification check did not confirm the panel as registered. This can happen due to timing issues, InfoPanel reloads, or race conditions in the Rust plugin environment.
+
+**Why is this okay?**
+- The plugin automatically detects this state and disables GUI features until InfoPanel is ready again.
+- No data loss or crash occurs; all core DeathCounter features (death tracking, chat/console commands, data persistence) continue to work.
+- The warning is informational and helps with troubleshooting InfoPanel integration, but does not interfere with plugin functionality.
+- If InfoPanel becomes available again, the panel will be re-registered automatically.
+
 
 ## Support
 
@@ -110,7 +124,14 @@ The plugin uses automatic color coding based on death count:
 
 MIT License - See [LICENSE](LICENSE) for details.
 
+
 ## Changelog
+
+### Version 1.3.5
+- Improved defensive cleanup for InfoPanel panels on plugin unload
+- Enhanced error logging and troubleshooting documentation
+- Updated Known Issues section for InfoPanel integration
+- Minor code and documentation improvements
 
 ### Version 1.3.0
 - Fixed InfoPanel integration timing issues

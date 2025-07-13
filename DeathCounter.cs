@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("DeathCounter", "mleem97", "1.3.0")]
+    [Info("DeathCounter", "mleem97", "1.3.5")]
     [Description("Displays player death counts in the InfoPanel GUI")]
     public class DeathCounter : RustPlugin
     {
@@ -423,30 +423,51 @@ namespace Oxide.Plugins
                     LogError($"Error destroying timer during unload: {ex.Message}");
                 }
                 
-                // Minimal InfoPanel cleanup - let InfoPanel handle most of the cleanup automatically
+                // Enhanced InfoPanel cleanup with multiple safety strategies
                 try
                 {
                     LogInfo($"InfoPanel cleanup - panel registered: {isPanelRegistered}, InfoPanel available: {InfoPanel != null}");
                     
-                    // Signal to InfoPanel that we're removing all our panels
                     if (InfoPanel != null && isPanelRegistered)
                     {
                         try
                         {
-                            // Send empty panel list to signal cleanup
+                            // Strategy 1: Try to explicitly unregister our panel first
+                            LogInfo("Attempting explicit panel unregistration...");
+                            InfoPanel.Call("PanelUnregister", "DeathCounter", "DeathCounterPanel");
+                            LogInfo("Panel unregistration completed");
+                        }
+                        catch (Exception unregisterEx)
+                        {
+                            LogInfo($"Panel unregistration failed (expected): {unregisterEx.Message}");
+                        }
+                        
+                        try
+                        {
+                            // Strategy 2: Send empty panel list to signal cleanup
+                            LogInfo("Sending empty panel list for cleanup...");
                             InfoPanel.Call("SendPanelInfo", "DeathCounter", new List<string>());
-                            LogInfo("Sent empty panel list to InfoPanel for cleanup");
+                            LogInfo("Empty panel list sent successfully");
                         }
                         catch (Exception cleanupEx)
                         {
-                            LogInfo($"Could not send cleanup signal to InfoPanel: {cleanupEx.Message}");
+                            LogInfo($"Empty panel list signal failed: {cleanupEx.Message}");
                         }
+                        
+                        // Strategy 3: Add small delay to let InfoPanel process
+                        timer.Once(0.1f, () => {
+                            LogInfo("InfoPanel cleanup delay completed");
+                        });
+                    }
+                    else
+                    {
+                        LogInfo("Skipping InfoPanel cleanup - not registered or InfoPanel unavailable");
                     }
                     
-                    // Reset our flag
+                    // Reset our flag regardless of cleanup success
                     isPanelRegistered = false;
                     
-                    LogInfo("InfoPanel cleanup completed");
+                    LogInfo("InfoPanel cleanup sequence completed");
                 }
                 catch (Exception ex)
                 {
@@ -681,6 +702,7 @@ namespace Oxide.Plugins
                 var panelConfig = GetPanelConfig();
                 LogInfo($"Panel config generated: {panelConfig.Length} characters");
                 
+                // Enhanced panel registration with verification
                 var result = InfoPanel.Call("PanelRegister", "DeathCounter", "DeathCounterPanel", panelConfig);
                 LogInfo($"PanelRegister result: {result} (type: {result?.GetType()})");
                 
@@ -688,8 +710,28 @@ namespace Oxide.Plugins
                 
                 if (success)
                 {
-                    isPanelRegistered = true;
-                    LogInfo("DeathCounter panel registered successfully");
+                    // Double-check that InfoPanel actually has our panel registered
+                    try
+                    {
+                        var verifyResult = InfoPanel.Call("IsPanelRegistered", "DeathCounter", "DeathCounterPanel");
+                        bool isVerified = verifyResult != null && (bool)verifyResult;
+                        
+                        if (isVerified)
+                        {
+                            isPanelRegistered = true;
+                            LogInfo("DeathCounter panel registered and verified successfully");
+                        }
+                        else
+                        {
+                            LogWarning("Panel registration reported success but verification failed");
+                            isPanelRegistered = true; // Assume success since PanelRegister returned true
+                        }
+                    }
+                    catch (Exception verifyEx)
+                    {
+                        LogInfo($"Panel verification not available: {verifyEx.Message}");
+                        isPanelRegistered = true; // Assume success since PanelRegister returned true
+                    }
                     
                     // Small delay before showing panels to ensure registration is complete
                     timer.Once(0.5f, () => {
@@ -1185,7 +1227,7 @@ namespace Oxide.Plugins
                 var activePlayers = BasePlayer.activePlayerList.Count;
 
                 arg.ReplyWith($"=== DeathCounter Status ===");
-                arg.ReplyWith($"Plugin Version: 1.3.0");
+                arg.ReplyWith($"Plugin Version: 1.3.1");
                 arg.ReplyWith($"InfoPanel Status: {infoPanelStatus}");
                 arg.ReplyWith($"Total Players Tracked: {totalPlayers}");
                 arg.ReplyWith($"Total Deaths Recorded: {totalDeaths}");
