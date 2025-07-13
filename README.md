@@ -112,6 +112,15 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## Changelog
 
+### Version 1.3.0
+- Fixed InfoPanel integration timing issues
+- Improved plugin lifecycle management
+- Enhanced error handling for panel registration
+- Added comprehensive InfoPanel cleanup on unload
+- Resolved KeyNotFoundException errors during plugin reload
+- Optimized server initialization checks
+- Better defensive programming for external dependencies
+
 ### Version 1.2.0
 - Changed default language to English
 - German available as secondary language
