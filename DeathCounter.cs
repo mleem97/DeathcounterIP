@@ -355,10 +355,16 @@ namespace Oxide.Plugins
 
         void OnPluginLoaded(Plugin plugin)
         {
-            if (plugin?.Title == "InfoPanel")
+            if (plugin?.Title == "InfoPanel" || plugin?.Name == "InfoPanel")
             {
                 LogInfo("InfoPanel detected, initializing DeathCounter integration...");
-                InfoPanelInit();
+                InfoPanel = plugin;
+                
+                // Small delay to ensure InfoPanel is fully initialized
+                timer.Once(1f, () => {
+                    InfoPanelInit();
+                    LogInfo("InfoPanel integration reestablished");
+                });
             }
         }
 
@@ -408,21 +414,6 @@ namespace Oxide.Plugins
             SaveData();
         }
 
-        void OnPluginLoaded(Plugin plugin)
-        {
-            if (plugin.Name == "InfoPanel")
-            {
-                LogInfo("InfoPanel plugin loaded, initializing integration...");
-                InfoPanel = plugin;
-                
-                // Small delay to ensure InfoPanel is fully initialized
-                timer.Once(1f, () => {
-                    RegisterInfoPanel();
-                    LogInfo("InfoPanel integration reestablished");
-                });
-            }
-        }
-
         void OnPluginUnloaded(Plugin plugin)
         {
             if (plugin.Name == "InfoPanel")
@@ -442,7 +433,7 @@ namespace Oxide.Plugins
             // Register InfoPanel if available
             if (InfoPanel != null)
             {
-                RegisterInfoPanel();
+                InfoPanelInit();
                 LogInfo("InfoPanel integration ready");
             }
             else
@@ -976,7 +967,7 @@ namespace Oxide.Plugins
         [ConsoleCommand("deathcounter.reset")]
         void ResetDeathsConsole(ConsoleSystem.Arg arg)
         {
-            if (arg.Player != null && !IsAdmin(arg.Player)) 
+            if (!arg.IsRcon && (arg.Connection == null || arg.Connection.authLevel < 2))
             {
                 arg.ReplyWith("Access denied. Admin permission required.");
                 return;
@@ -1023,7 +1014,7 @@ namespace Oxide.Plugins
         [ConsoleCommand("deathcounter.reload")]
         void ReloadPluginConsole(ConsoleSystem.Arg arg)
         {
-            if (arg.Player != null && !IsAdmin(arg.Player)) 
+            if (!arg.IsRcon && (arg.Connection == null || arg.Connection.authLevel < 2))
             {
                 arg.ReplyWith("Access denied. Admin permission required.");
                 return;
@@ -1052,7 +1043,7 @@ namespace Oxide.Plugins
         [ConsoleCommand("deathcounter.status")]
         void StatusConsole(ConsoleSystem.Arg arg)
         {
-            if (arg.Player != null && !IsAdmin(arg.Player)) 
+            if (!arg.IsRcon && (arg.Connection == null || arg.Connection.authLevel < 2))
             {
                 arg.ReplyWith("Access denied. Admin permission required.");
                 return;
