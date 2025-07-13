@@ -9,8 +9,8 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("DeathCounter", "mleem97", "1.1.0")]
-    [Description("Zeigt die Anzahl der Todesfälle von Spielern im InfoPanel an")]
+    [Info("DeathCounter", "mleem97", "1.2.0")]
+    [Description("Displays player death counts in the InfoPanel GUI")]
     public class DeathCounter : RustPlugin
     {
         #region Fields
@@ -63,7 +63,7 @@ namespace Oxide.Plugins
             public bool AutoShowOnConnect = true;
 
             [JsonProperty("Death Icon URL (leave empty for default skull)")]
-            public string DeathIconUrl = "https://i.imgur.com/QvMYvdf.png";
+            public string DeathIconUrl = "https://i.imgur.com/YCmvxMN.png";
 
             [JsonProperty("Enable Debug Mode")]
             public bool DebugMode = false;
@@ -136,30 +136,31 @@ namespace Oxide.Plugins
 
         protected override void LoadDefaultMessages()
         {
+            // English (default) translations
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["DeathCount"] = "Todesfälle: {0}",
-                ["YourDeaths"] = "Du bist {0} mal gestorben.",
-                ["NoDeaths"] = "Noch keine Todesfälle verzeichnet.",
-                ["TopDeaths"] = "Top 5 Todesfälle:",
-                ["TopDeathsEntry"] = "{0}. {1}: {2} Todesfälle",
-                ["UnknownPlayer"] = "Unbekannt",
-                ["PanelShown"] = "Death Counter Panel wird angezeigt.",
-                ["PanelHidden"] = "Death Counter Panel wurde versteckt.",
-                ["DeathsReset"] = "Todesfälle wurden zurückgesetzt.",
-                ["DeathsResetTarget"] = "Todesfälle für {0} wurden zurückgesetzt.",
-                ["PlayerNotFound"] = "Spieler nicht gefunden.",
-                ["NoPermission"] = "Du hast keine Berechtigung für diesen Befehl.",
-                ["AllDeathsReset"] = "Alle Todesfälle wurden zurückgesetzt.",
-                ["ConfigReloaded"] = "DeathCounter Konfiguration wurde neu geladen.",
-                ["AvailableCommands"] = "Verfügbare Befehle:",
-                ["CmdDeaths"] = "/deaths - Zeigt deine eigenen Todesfälle an",
-                ["CmdDeathsTop"] = "/deathstop - Zeigt die Top 5 Spieler mit den meisten Todesfällen",
-                ["CmdPanelShow"] = "/deathpanel show - Zeigt das Death Counter Panel an",
-                ["CmdPanelHide"] = "/deathpanel hide - Versteckt das Death Counter Panel",
-                ["CmdPanelReset"] = "/deathpanel reset [spielername] - Setzt Todesfälle zurück (Admin)",
-                ["UnknownCommand"] = "Unbekannter Befehl. Verwende /deathpanel für Hilfe.",
-                ["InfoPanelNotLoaded"] = "InfoPanel Plugin ist nicht geladen oder verfügbar."
+                ["DeathCount"] = "Deaths: {0}",
+                ["YourDeaths"] = "You have died {0} times.",
+                ["NoDeaths"] = "No deaths recorded yet.",
+                ["TopDeaths"] = "Top 5 Deaths:",
+                ["TopDeathsEntry"] = "{0}. {1}: {2} deaths",
+                ["UnknownPlayer"] = "Unknown",
+                ["PanelShown"] = "Death Counter panel is now shown.",
+                ["PanelHidden"] = "Death Counter panel has been hidden.",
+                ["DeathsReset"] = "Your deaths have been reset.",
+                ["DeathsResetTarget"] = "Deaths for {0} have been reset.",
+                ["PlayerNotFound"] = "Player not found.",
+                ["NoPermission"] = "You don't have permission to use this command.",
+                ["AllDeathsReset"] = "All deaths have been reset.",
+                ["ConfigReloaded"] = "DeathCounter configuration has been reloaded.",
+                ["AvailableCommands"] = "Available commands:",
+                ["CmdDeaths"] = "/deaths - Shows your own death count",
+                ["CmdDeathsTop"] = "/deathstop - Shows top 5 players with most deaths",
+                ["CmdPanelShow"] = "/deathpanel show - Shows the Death Counter panel",
+                ["CmdPanelHide"] = "/deathpanel hide - Hides the Death Counter panel",
+                ["CmdPanelReset"] = "/deathpanel reset [playername] - Resets death count (Admin)",
+                ["UnknownCommand"] = "Unknown command. Use /deathpanel for help.",
+                ["InfoPanelNotLoaded"] = "InfoPanel plugin is not loaded or available."
             }, this, "en");
 
             // German translations
@@ -199,6 +200,12 @@ namespace Oxide.Plugins
 
         void Init()
         {
+            // Initialize config first
+            if (config == null)
+            {
+                LoadConfig();
+            }
+
             // Register permissions
             permission.RegisterPermission(PERMISSION_ADMIN, this);
             permission.RegisterPermission(PERMISSION_USE, this);
@@ -443,7 +450,7 @@ namespace Oxide.Plugins
             }
             
             // Start update timer regardless of InfoPanel availability
-            if (config.UpdateInterval > 0)
+            if (config?.UpdateInterval > 0)
             {
                 updateTimer = timer.Every(config.UpdateInterval, UpdateAllPanels);
                 LogInfo($"Started update timer with {config.UpdateInterval}s interval");
@@ -499,7 +506,7 @@ namespace Oxide.Plugins
                 
                 playerDeaths[playerId]++;
                 
-                if (config.DebugMode)
+                if (config?.DebugMode == true)
                     LogInfo($"Player {player.displayName} died. Total deaths: {playerDeaths[playerId]}");
                 
                 UpdatePlayerPanel(player);
@@ -523,7 +530,7 @@ namespace Oxide.Plugins
                 {
                     if (player == null || !player.IsConnected) return;
                     
-                    if (InfoPanel != null && config.AutoShowOnConnect)
+                    if (InfoPanel != null && config?.AutoShowOnConnect == true)
                     {
                         // Check if InfoPanel GUI is loaded for the player
                         bool isGUILoaded = (bool?)InfoPanel.Call("IsPlayerGUILoaded", player.UserIDString) ?? false;
@@ -578,7 +585,7 @@ namespace Oxide.Plugins
                 AddDeathCounterPanel();
                 
                 updateTimer?.Destroy();
-                if (config.UpdateInterval > 0)
+                if (config?.UpdateInterval > 0)
                 {
                     updateTimer = timer.Repeat(config.UpdateInterval, 0, () => UpdateAllPanels());
                 }
@@ -645,7 +652,7 @@ namespace Oxide.Plugins
                     Height = 0.3,
                     Margin = "0.05 0.05 0.35 0.05",
                     Order = 1,
-                    Url = !string.IsNullOrEmpty(config.DeathIconUrl) ? config.DeathIconUrl : "https://i.imgur.com/QvMYvdf.png"
+                    Url = !string.IsNullOrEmpty(config.DeathIconUrl) ? config.DeathIconUrl : "https://i.imgur.com/YCmvxMN.png"
                 },
                 Text = new
                 {
@@ -688,7 +695,7 @@ namespace Oxide.Plugins
                 InfoPanel.Call("SetPanelAttribute", "DeathCounter", "DeathCounterPanelText", "FontColor", color, player.UserIDString);
                 InfoPanel.Call("RefreshPanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
 
-                if (config.DebugMode)
+                if (config?.DebugMode == true)
                     LogInfo($"Updated panel for {player.displayName}: {deaths} deaths");
             }
             catch (Exception ex)
@@ -726,7 +733,7 @@ namespace Oxide.Plugins
                 UpdatePlayerPanel(player);
                 InfoPanel.Call("ShowPanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
 
-                if (config.DebugMode)
+                if (config?.DebugMode == true)
                     LogInfo($"Showing panel to {player.displayName}");
             }
             catch (Exception ex)
@@ -762,7 +769,7 @@ namespace Oxide.Plugins
 
         private void LogInfo(string message)
         {
-            if (config.DebugMode)
+            if (config?.DebugMode == true)
                 Puts($"[INFO] {message}");
         }
 
@@ -815,7 +822,7 @@ namespace Oxide.Plugins
             try
             {
                 Interface.Oxide.DataFileSystem.WriteObject("DeathCounter_Deaths", playerDeaths);
-                if (config.DebugMode)
+                if (config?.DebugMode == true)
                     LogInfo($"Saved death data for {playerDeaths.Count} players");
             }
             catch (Exception ex)
@@ -1026,7 +1033,7 @@ namespace Oxide.Plugins
                 
                 // Reinitialize timer with new interval
                 updateTimer?.Destroy();
-                if (config.UpdateInterval > 0)
+                if (config?.UpdateInterval > 0)
                 {
                     updateTimer = timer.Repeat(config.UpdateInterval, 0, () => UpdateAllPanels());
                 }
@@ -1057,13 +1064,13 @@ namespace Oxide.Plugins
                 var activePlayers = BasePlayer.activePlayerList.Count;
 
                 arg.ReplyWith($"=== DeathCounter Status ===");
-                arg.ReplyWith($"Plugin Version: 1.1.0");
+                arg.ReplyWith($"Plugin Version: 1.2.0");
                 arg.ReplyWith($"InfoPanel Status: {infoPanelStatus}");
                 arg.ReplyWith($"Total Players Tracked: {totalPlayers}");
                 arg.ReplyWith($"Total Deaths Recorded: {totalDeaths}");
                 arg.ReplyWith($"Active Players Online: {activePlayers}");
-                arg.ReplyWith($"Update Interval: {config.UpdateInterval}s");
-                arg.ReplyWith($"Debug Mode: {(config.DebugMode ? "Enabled" : "Disabled")}");
+                arg.ReplyWith($"Update Interval: {config?.UpdateInterval ?? 10}s");
+                arg.ReplyWith($"Debug Mode: {(config?.DebugMode == true ? "Enabled" : "Disabled")}");
             }
             catch (Exception ex)
             {

@@ -1,48 +1,55 @@
-# DeathCounter Plugin for Rust Oxide
+# DeathCounter - Rust Oxide Plugin
 
-A Rust Oxide plugin that displays player death counts in the InfoPanel GUI.
+A comprehensive Rust Oxide plugin that displays player death counts through the InfoPanel GUI system.
 
 ## Features
 
-- **Real-time Death Counter**: Shows each player's death count in an InfoPanel display
-- **Automatic Updates**: Panel automatically updates when a player dies
-- **Persistent Data**: Death counts are saved and survive server restarts
-- **Color Coding**: Death count is color-coded (green for few deaths, red for many)
-- **Chat Commands**: Various commands for managing and displaying statistics
-- **Admin Functions**: Admins can reset death counts
-- **Fully Configurable**: Position, colors, size, and update interval can be customized
-- **Permissions System**: Full Oxide permissions integration for access control
-- **Multilingual Support**: English and German language support
-- **Error Handling**: Robust error handling and debug mode
-
-## Dependencies
-
-- **InfoPanel Plugin**: This plugin requires the InfoPanel plugin by Ghosst
-- Rust Oxide Framework
+- **Real-time Death Display**: Shows current death count for each player
+- **InfoPanel Integration**: Uses InfoPanel plugin for elegant GUI presentation
+- **Color Coding**: Automatic color changes based on death count
+- **Multi-language**: Full support for English (default) and German
+- **Permission System**: Granular control over access and admin functions
+- **Persistent Data Storage**: Automatic saving and loading of death statistics
+- **Configurable**: Extensive customization options for position, colors and behavior
 
 ## Installation
 
-1. Ensure the InfoPanel plugin is installed and functional
-2. Upload `DeathCounter.cs` to the `oxide/plugins/` folder of your Rust server
-3. The plugin will automatically load and create a configuration file
+1. **Install Dependencies**:
+   - [InfoPanel Plugin](https://umod.org/plugins/info-panel) by Ghosst (required)
+
+2. **Install Plugin**:
+   - Upload `DeathCounter.cs` to your Rust server's `oxide/plugins/` folder
+   - Plugin compiles automatically on server start
+
+3. **Grant Permissions**:
+   ```
+   oxide.grant group default deathcounter.use
+   oxide.grant group admin deathcounter.admin
+   ```
+
+## Commands
+
+### Chat Commands
+- `/deaths` - Shows your own death count
+- `/deathstop` - Shows top 5 players with most deaths
+- `/deathpanel show` - Shows the Death Counter panel
+- `/deathpanel hide` - Hides the Death Counter panel
+- `/deathpanel reset [playername]` - Resets death count (Admin)
+
+### Console Commands
+- `deathcounter.reset [playername]` - Resets death counts
+- `deathcounter.reload` - Reloads configuration
+- `deathcounter.status` - Shows plugin status and statistics
 
 ## Permissions
 
-The plugin uses Oxide's permission system for access control:
-
-- `deathcounter.use` - Basic plugin usage (view panel, chat commands)
-- `deathcounter.admin` - Administrative commands (reset, reload)
+- `deathcounter.use` - Basic plugin usage
+- `deathcounter.admin` - Admin commands and death count resetting
 - `deathcounter.viewall` - View all player deaths (future feature)
-
-**Grant permissions:**
-```
-oxide.grant group default deathcounter.use
-oxide.grant group admin deathcounter.admin
-```
 
 ## Configuration
 
-Configuration can be found at `oxide/config/DeathCounter.json`:
+The plugin automatically creates a configuration file at `oxide/config/DeathCounter.json`:
 
 ```json
 {
@@ -55,135 +62,75 @@ Configuration can be found at `oxide/config/DeathCounter.json`:
   "Panel Width (0.0 - 1.0, Default: 0.12)": 0.12,
   "Panel Height (0.0 - 1.0, Default: 0.95)": 0.95,
   "Auto-show Panel on Player Connect": true,
-  "Death Icon URL (leave empty for default skull)": "https://i.imgur.com/QvMYvdf.png",
+  "Death Icon URL (leave empty for default skull)": "https://i.imgur.com/YCmvxMN.png",
   "Enable Debug Mode": false
 }
 ```
 
-### Configuration Options
-
-- **Update Interval**: How often the panel updates (in seconds)
-- **Panel Position**: Panel position ("TopPanel", "BottomPanel", etc.)
-- **Show Own Deaths Only**: Whether to show only own deaths or all players
-- **Panel Background Color**: Panel background color (RGBA format)
-- **Default Text Color**: Default text color (RGBA format)
-- **Font Size**: Font size for the text
-- **Panel Width/Height**: Panel dimensions (0-1)
-- **Auto-show Panel**: Automatically show panel when players connect
-- **Death Icon URL**: Custom death icon URL
-- **Debug Mode**: Enable detailed logging for troubleshooting
-
-## Chat Commands
-
-### For all players:
-- `/deaths` - Shows your own death count
-- `/deathstop` - Shows top 5 players with most deaths
-- `/deathpanel show` - Shows the Death Counter panel
-- `/deathpanel hide` - Hides the Death Counter panel
-
-### For admins:
-- `/deathpanel reset [playername]` - Resets death count for a player (or yourself if no name given)
-
-## Console Commands
-
-- `deathcounter.reset [playername]` - Reset death counts (no name = all players)
-- `deathcounter.reload` - Reload configuration
-- `deathcounter.status` - Show plugin status and statistics
-
 ## Color Coding
 
 The plugin uses automatic color coding based on death count:
-
 - **0 Deaths**: Green
 - **1-3 Deaths**: Yellow
 - **4-7 Deaths**: Orange
 - **8-15 Deaths**: Red-Orange
 - **16-25 Deaths**: Red
-- **25+ Deaths**: Dark Red
+- **26+ Deaths**: Dark Red
 
-## InfoPanel Integration
+## Data Management
 
-The plugin uses the InfoPanel API for GUI display:
-
-- Automatic registration with InfoPanel
-- Support for all InfoPanel features (docking, anchors, etc.)
-- Responsive updates on player events
-- Individual customization per player possible
-
-## Data Processing
-
-- Death counts are stored in `oxide/data/DeathCounter_Deaths.json`
-- Automatic saving on server saves and plugin unload
-- Backup system prevents data loss
-
-## Events
-
-The plugin responds to the following Rust events:
-- `OnPlayerDeath`: Increments the death counter
-- `OnPlayerConnected`: Shows panel to new players
-- `OnPlayerDisconnected`: Hides the panel
-- `OnServerSave`: Saves the data
+- **Automatic Saving**: After every death and server save
+- **Backup System**: Automatic backups on file corruption
+- **Validation**: Data integrity checked on startup
+- **Migration**: Automatic data structure updates on plugin updates
 
 ## Troubleshooting
 
-1. **Panel not showing**: 
-   - Make sure InfoPanel is installed and loaded
-   - Check plugin logs for errors
-   - Verify player has `deathcounter.use` permission
+### Plugin won't compile
+- Check that all required dependencies are installed
+- Ensure you're using the latest version of Oxide
 
-2. **Data loss**:
-   - Check write permissions in `oxide/data/` folder
-   - Enable debug mode for detailed logging
+### InfoPanel not showing
+- Check that InfoPanel plugin is installed and loaded
+- Ensure the player has required permissions
+- Enable debug mode in configuration for detailed logs
 
-3. **Performance issues**:
-   - Increase update interval in configuration
-   - Check server performance during peak times
-
-4. **Permission issues**:
-   - Verify permissions are granted correctly
-   - Use `oxide.show perms <player>` to check player permissions
-
-## Localization
-
-The plugin supports multiple languages:
-- **English** (en) - Default
-- **German** (de) - Included
-
-Language files are stored in `oxide/lang/[language]/DeathCounter.json`
-
-To add custom translations:
-1. Create a new language file in the appropriate folder
-2. Copy the structure from an existing language file
-3. Translate the messages
-
-## API for Other Plugins
-
-The plugin stores death data that other plugins can access:
-
-```csharp
-// Get death count for a player
-var deathCount = DeathCounter?.Call("GetPlayerDeaths", player.userID);
-
-// Reset death count for a player
-DeathCounter?.Call("ResetPlayerDeaths", player.userID);
-```
-
-## Version History
-
-- **1.1.0**: Added permissions system, localization, improved error handling
-- **1.0.0**: Initial release with basic features
+### Data loss
+- Plugin automatically saves after every death
+- Backup files are created automatically on problems
+- Check file permissions in `oxide/data/` directory
 
 ## Support
 
-For issues or feature requests, please create an issue on GitHub or contact the plugin developer.
+- **GitHub Issues**: [Report Issues](https://github.com/mleem97/DeathcounterIP/issues)
+- **Discord**: Oxide/uMod Community Discord
+- **uMod**: [Plugin Page](https://umod.org)
 
 ## License
 
-This plugin is open source and can be freely modified and distributed.
+MIT License - See [LICENSE](LICENSE) for details.
 
-## Credits
+## Changelog
 
-- **mleem97** - Plugin Developer
-- **Ghosst** - InfoPanel Plugin (dependency)
-- **Oxide/uMod Team** - Framework
-- **Rust Community** - Feedback and testing
+### Version 1.2.0
+- Changed default language to English
+- German available as secondary language
+- Improved language file management
+- Enhanced uMod/Oxide compliance
+- Updated default death icon
+
+### Version 1.1.1
+- Improved null reference handling
+- Optimized InfoPanel integration
+- Enhanced error handling
+- Automatic file validation
+
+### Version 1.1.0
+- Added InfoPanel integration
+- Implemented color coding
+- Multi-language support
+- Comprehensive configuration options
+
+### Version 1.0.0
+- Initial release
+- Basic death display functionality
