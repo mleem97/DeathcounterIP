@@ -21,38 +21,47 @@ A comprehensive Rust Oxide plugin that displays player death counts through the 
    - [InfoPanel Plugin](https://umod.org/plugins/info-panel) by Ghosst (required)
 
 2. **Install Plugin**:
-   - Upload `DeathCounter.cs` to your Rust server's `oxide/plugins/` folder
-   - Plugin compiles automatically on server start
 
-3. **Grant Permissions**:
-   ```
-   oxide.grant group default deathcounter.use
-   oxide.grant group admin deathcounter.admin
-   ```
+# DeathCounter for Rust Oxide/uMod
 
-## Commands
+**Current Version:** 1.3.5
 
-### Chat Commands
-- `/deaths` - Shows your own death count
-- `/deathstop` - Shows top 5 players with most deaths
-- `/deathpanel show` - Shows the Death Counter panel
-- `/deathpanel hide` - Hides the Death Counter panel
-- `/deathpanel reset [playername]` - Resets death count (Admin)
+DeathCounter is a robust, single-file Rust Oxide/uMod plugin that tracks and displays player death counts via the InfoPanel GUI. It is designed for maximum reliability, seamless InfoPanel integration, and easy server management.
 
-### Console Commands
-- `deathcounter.reset [playername]` - Resets death counts
-- `deathcounter.reload` - Reloads configuration
-- `deathcounter.status` - Shows plugin status and statistics
+---
 
-## Permissions
+## Features
 
-- `deathcounter.use` - Basic plugin usage
-- `deathcounter.admin` - Admin commands and death count resetting
-- `deathcounter.viewall` - View all player deaths (future feature)
+- **Live Death Counter:** Real-time display of player deaths in the InfoPanel GUI
+- **InfoPanel Integration:** Full support for InfoPanel by Ghosst (required dependency)
+- **Color Coding:** Panel text color changes based on death count
+- **Multi-language:** English (default) and German support
+- **Permission System:** Fine-grained access for users and admins
+- **Persistent Data:** Automatic saving and loading of death stats
+- **Configurable:** Panel position, colors, update interval, debug mode, and more
+- **Safe Unload/Reload:** Defensive cleanup to prevent InfoPanel errors
+
+---
+
+## Installation
+
+1. **Install InfoPanel**
+   - Download and install [InfoPanel](https://umod.org/plugins/info-panel) by Ghosst
+2. **Deploy DeathCounter**
+   - Place `DeathCounter.cs` in your server's `oxide/plugins/` folder
+   - The plugin will compile and load automatically
+3. **Grant Permissions**
+   - Run:
+     ```
+     oxide.grant group default deathcounter.use
+     oxide.grant group admin deathcounter.admin
+     ```
+
+---
 
 ## Configuration
 
-The plugin automatically creates a configuration file at `oxide/config/DeathCounter.json`:
+The plugin creates `oxide/config/DeathCounter.json` automatically. Example:
 
 ```json
 {
@@ -70,30 +79,79 @@ The plugin automatically creates a configuration file at `oxide/config/DeathCoun
 }
 ```
 
+---
+
 ## Color Coding
 
-The plugin uses automatic color coding based on death count:
-- **0 Deaths**: Green
-- **1-3 Deaths**: Yellow
-- **4-7 Deaths**: Orange
-- **8-15 Deaths**: Red-Orange
-- **16-25 Deaths**: Red
-- **26+ Deaths**: Dark Red
+- **0 Deaths:** Green
+- **1-3 Deaths:** Yellow
+- **4-7 Deaths:** Orange
+- **8-15 Deaths:** Red-Orange
+- **16-25 Deaths:** Red
+- **26+ Deaths:** Dark Red
+
+---
+
+## Commands
+
+### Chat Commands
+- `/deaths` — Show your own death count
+- `/deathstop` — Show top 5 players with most deaths
+- `/deathpanel show` — Show the DeathCounter panel
+- `/deathpanel hide` — Hide the DeathCounter panel
+- `/deathpanel reset [playername]` — Reset death count (Admin)
+
+### Console Commands
+- `deathcounter.reset [playername]` — Reset death counts
+- `deathcounter.reload` — Reload configuration
+- `deathcounter.status` — Show plugin status and statistics
+
+---
+
+## Permissions
+
+- `deathcounter.use` — Basic plugin usage
+- `deathcounter.admin` — Admin commands and death count resetting
+- `deathcounter.viewall` — View all player deaths (future feature)
+
+---
 
 ## Data Management
 
-- **Automatic Saving**: After every death and server save
-- **Backup System**: Automatic backups on file corruption
-- **Validation**: Data integrity checked on startup
-- **Migration**: Automatic data structure updates on plugin updates
+- **Automatic Saving:** After every death and server save
+- **Backup System:** Automatic backups on file corruption
+- **Validation:** Data integrity checked on startup
+- **Migration:** Automatic data structure updates on plugin updates
+
+---
+
+## InfoPanel Integration & Defensive Programming
+
+- All GUI features require InfoPanel to be loaded and available
+- Defensive checks and try-catch blocks around all InfoPanel API calls
+- Plugin continues to work (death tracking, commands, data) even if InfoPanel is missing or errors occur
+- Comprehensive cleanup logic on plugin unload/reload to prevent InfoPanel errors
+
+---
 
 ## Troubleshooting
 
 ### Plugin won't compile
+- Make sure InfoPanel is installed and up to date
+- Check for syntax errors in DeathCounter.cs
+- Review Oxide compiler logs for details
 
 ### InfoPanel not showing
+- Ensure InfoPanel is loaded and running (`oxide.plugins`)
+- Check player permissions
+- Enable debug mode in config for more logs
 
 ### Data loss
+- Plugin saves after every death and on server save
+- Check file permissions in `oxide/data/`
+- Backup files are created automatically
+
+---
 
 ## Known Issues
 
@@ -113,27 +171,54 @@ This warning means that the InfoPanel API returned a success response when regis
 - The warning is informational and helps with troubleshooting InfoPanel integration, but does not interfere with plugin functionality.
 - If InfoPanel becomes available again, the panel will be re-registered automatically.
 
+---
+
+### InfoPanel KeyNotFoundException on plugin unload
+
+**Log example:**
+```
+(03:24:10) | Failed to call hook 'OnPluginUnloaded' on plugin 'InfoPanel v1.0.9' (KeyNotFoundException: The given key 'DeathCounterPanel' was not present in the dictionary.)
+  at System.Collections.Generic.Dictionary`2[TKey,TValue].get_Item (TKey key) [0x0001e] in <8ce0bd04a7a04b4b9395538239d3fdd8>:0 
+  at Oxide.Plugins.InfoPanel.OnPluginUnloaded (Oxide.Core.Plugins.Plugin plugin) [0x00056] in <5bd7985dcca44fa3a831760b4eb5afae>:0 
+  at Oxide.Plugins.InfoPanel.DirectCallHook (System.String name, System.Object& ret, System.Object[] args) [0x00610] in <5bd7985dcca44fa3a831760b4eb5afae>:0 
+  at Oxide.Plugins.CSharpPlugin.InvokeMethod (Oxide.Core.Plugins.HookMethod method, System.Object[] args) [0x00079] in <42f9bedc659b4f4786eb778d3cd58968>:0 
+  at Oxide.Core.Plugins.Plugin.CallHook (System.String hook, System.Object[] args) [0x00060] in <d59b507fd76240e5b62228d0eae39b73>:0 
+```
+
+**Explanation:**
+This error is thrown by InfoPanel when it tries to remove a panel that is already gone or was never registered, typically during plugin unload or reload. It is a known issue with InfoPanel's internal dictionary management and does not indicate a problem with DeathCounter itself.
+
+**Why is this okay?**
+- DeathCounter handles InfoPanel integration defensively and will not crash or lose data due to this error.
+- The error only affects InfoPanel's internal cleanup and does not impact DeathCounter's core features.
+- You can safely ignore this error; DeathCounter will continue to function and re-register panels as needed.
+- If you want to avoid this error entirely, ensure InfoPanel is updated or patched to check for panel existence before removal.
+
+---
 
 ## Support
 
-- **GitHub Issues**: [Report Issues](https://github.com/mleem97/DeathcounterIP/issues)
-- **Discord**: Oxide/uMod Community Discord
-- **uMod**: [Plugin Page](https://umod.org)
+- **GitHub Issues:** [Report Issues](https://github.com/mleem97/DeathcounterIP/issues)
+- **Discord:** Oxide/uMod Community Discord
+- **uMod:** [Plugin Page](https://umod.org)
+
+---
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+MIT License — See [LICENSE](LICENSE) for details.
 
+---
 
 ## Changelog
 
-### Version 1.3.5
+### 1.3.5
 - Improved defensive cleanup for InfoPanel panels on plugin unload
 - Enhanced error logging and troubleshooting documentation
 - Updated Known Issues section for InfoPanel integration
 - Minor code and documentation improvements
 
-### Version 1.3.0
+### 1.3.0
 - Fixed InfoPanel integration timing issues
 - Improved plugin lifecycle management
 - Enhanced error handling for panel registration
@@ -142,25 +227,25 @@ MIT License - See [LICENSE](LICENSE) for details.
 - Optimized server initialization checks
 - Better defensive programming for external dependencies
 
-### Version 1.2.0
+### 1.2.0
 - Changed default language to English
 - German available as secondary language
 - Improved language file management
 - Enhanced uMod/Oxide compliance
 - Updated default death icon
 
-### Version 1.1.1
+### 1.1.1
 - Improved null reference handling
 - Optimized InfoPanel integration
 - Enhanced error handling
 - Automatic file validation
 
-### Version 1.1.0
+### 1.1.0
 - Added InfoPanel integration
 - Implemented color coding
 - Multi-language support
 - Comprehensive configuration options
 
-### Version 1.0.0
+### 1.0.0
 - Initial release
 - Basic death display functionality
