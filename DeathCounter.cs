@@ -27,6 +27,9 @@ namespace Oxide.Plugins
         private const string PERMISSION_USE = "deathcounter.use";
         private const string PERMISSION_VIEW_ALL = "deathcounter.viewall";
 
+        // Track if panel is registered
+        private bool isPanelRegistered = false;
+
         #endregion
 
         #region Configuration
@@ -408,17 +411,28 @@ namespace Oxide.Plugins
                 // Hide panels for all players
                 try
                 {
-                    if (InfoPanel != null && BasePlayer.activePlayerList != null)
+                    if (InfoPanel != null && isPanelRegistered && BasePlayer.activePlayerList != null)
                     {
                         foreach (var player in BasePlayer.activePlayerList)
                         {
                             if (player != null && !string.IsNullOrEmpty(player.UserIDString))
                             {
-                                InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                                try
+                                {
+                                    InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                                }
+                                catch (Exception playerEx)
+                                {
+                                    // Ignore individual player errors during unload
+                                    LogInfo($"Could not hide panel for player {player.displayName}: {playerEx.Message}");
+                                }
                             }
                         }
                         LogInfo("Hidden all player panels");
                     }
+                    
+                    // Reset panel registration flag
+                    isPanelRegistered = false;
                 }
                 catch (Exception ex)
                 {
@@ -579,9 +593,17 @@ namespace Oxide.Plugins
             
             try
             {
-                if (InfoPanel != null)
+                if (InfoPanel != null && isPanelRegistered)
                 {
-                    InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                    try
+                    {
+                        InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                    }
+                    catch (Exception hideEx)
+                    {
+                        // Ignore panel hide errors during disconnect
+                        LogInfo($"Could not hide panel for disconnecting player {player.displayName}: {hideEx.Message}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -623,6 +645,7 @@ namespace Oxide.Plugins
                 
                 if (success)
                 {
+                    isPanelRegistered = true;
                     LogInfo("DeathCounter panel registered successfully");
                     
                     // Show panel to connected players with permission
@@ -637,11 +660,13 @@ namespace Oxide.Plugins
                 else
                 {
                     LogError("Failed to register DeathCounter panel with InfoPanel");
+                    isPanelRegistered = false;
                 }
             }
             catch (Exception ex)
             {
                 LogError($"Error adding DeathCounter panel: {ex.Message}");
+                isPanelRegistered = false;
             }
         }
 
@@ -960,10 +985,18 @@ namespace Oxide.Plugins
                     break;
 
                 case "hide":
-                    if (InfoPanel != null)
+                    if (InfoPanel != null && isPanelRegistered)
                     {
-                        InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
-                        SendReply(player, Lang("PanelHidden", player.UserIDString));
+                        try
+                        {
+                            InfoPanel.Call("HidePanel", "DeathCounter", "DeathCounterPanel", player.UserIDString);
+                            SendReply(player, Lang("PanelHidden", player.UserIDString));
+                        }
+                        catch (Exception ex)
+                        {
+                            LogError($"Error hiding panel for {player.displayName}: {ex.Message}");
+                            SendReply(player, "Error hiding panel.");
+                        }
                     }
                     else
                     {
